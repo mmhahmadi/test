@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Color Catch Mobile</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --text-color: #ffffff;
+            --accent-color: #e94560;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            position: relative;
+            width: 90vw;
+            height: 70vh;
+            background-color: #16213e;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid #0f3460;
+        }
+
+        #target {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background-color: var(--accent-color);
+            border-radius: 8px;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 0 15px var(--accent-color);
+        }
+
+        .stats {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            display: flex;
+            gap: 20px;
+        }
+
+        #start-btn {
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        #start-overlay {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="stats">
+        <div>Punkte: <span id="score">0</span></div>
+        <div>Zeit: <span id="timer">30</span>s</div>
+    </div>
+
+    <div id="game-container">
+        <div id="start-overlay">
+            <button id="start-btn">Spiel starten</button>
+        </div>
+        <div id="target"></div>
+    </div>
+
+    <script>
+        const target = document.getElementById('target');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+        const startOverlay = document.getElementById('start-overlay');
+        const container = document.getElementById('game-container');
+
+        let score = 0;
+        let timeLeft = 30;
+        let gameActive = false;
+        let timerInterval;
+
+        function moveTarget() {
+            if (!gameActive) return;
+
+            const maxX = container.clientWidth - target.clientWidth;
+            const maxY = container.clientHeight - target.clientHeight;
+
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * maxY);
+
+            target.style.left = randomX + 'px';
+            target.style.top = randomY + 'px';
+            
+            // Schwierigkeit: Wird kleiner je mehr Punkte man hat
+            const size = Math.max(30, 60 - score);
+            target.style.width = size + 'px';
+            target.style.height = size + 'px';
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            scoreDisplay.textContent = score;
+            timerDisplay.textContent = timeLeft;
+            startOverlay.style.display = 'none';
+            target.style.display = 'block';
+
+            moveTarget();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            target.style.display = 'none';
+            startOverlay.style.display = 'flex';
+            alert('Spiel vorbei! Deine Punkte: ' + score);
+        }
+
+        // Event für Touch und Klick
+        target.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            if (gameActive) {
+                score++;
+                scoreDisplay.textContent = score;
+                moveTarget();
+            }
+        });
+
+        startBtn.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
