@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Physics Galaxy Defender</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; }
+        #ui {
+            position: absolute; top: 10px; left: 10px; color: #0f0; 
+            pointer-events: none; text-shadow: 0 0 5px #0f0; z-index: 10;
+        }
+        .btn-layer {
+            position: absolute; bottom: 20px; width: 100%; 
+            display: flex; justify-content: center; gap: 20px;
+        }
+        button {
+            padding: 15px 25px; background: rgba(0, 255, 0, 0.2); 
+            color: #0f0; border: 2px solid #0f0; border-radius: 10px;
+            font-weight: bold; pointer-events: auto;
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div>ENERGY: <span id="score">0</span></div>
+        <div>GRAVITY: <span id="grav-status">NORMAL</span></div>
+    </div>
+
+    <div class="btn-layer">
+        <button id="reverse-btn">ANTIGRAVITY</button>
+        <button id="spawn-btn">ADD MATTER</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+
+    <script>
+        const { Engine, Render, Runner, Bodies, Composite, Mouse, MouseConstraint, Vector, Events } = Matter;
+
+        // Setup
+        const engine = Engine.create();
+        const render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                background: 'transparent'
+            }
+        });
+
+        // Wände (etwas außerhalb des Bildschirms)
+        const thickness = 100;
+        const ground = Bodies.rectangle(window.innerWidth/2, window.innerHeight + thickness/2, window.innerWidth, thickness, { isStatic: true });
+        const roof = Bodies.rectangle(window.innerWidth/2, -thickness/2, window.innerWidth, thickness, { isStatic: true });
+        const leftWall = Bodies.rectangle(-thickness/2, window.innerHeight/2, thickness, window.innerHeight, { isStatic: true });
+        const rightWall = Bodies.rectangle(window.innerWidth + thickness/2, window.innerHeight/2, thickness, window.innerHeight, { isStatic: true });
+
+        Composite.add(engine.world, [ground, roof, leftWall, rightWall]);
+
+        // Interaktion
+        const mouse = Mouse.create(render.canvas);
+        const mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: { stiffness: 0.1, render: { visible: false } }
+        });
+        Composite.add(engine.world, mouseConstraint);
+
+        // Spiel-Logik
+        let score = 0;
+        const scoreEl = document.getElementById('score');
+        const gravEl = document.getElementById('grav-status');
+
+        function spawnObject() {
+            const x = Math.random() * window.innerWidth;
+            const size = 20 + Math.random() * 40;
+            const isCircle = Math.random() > 0.5;
+            
+            const obj = isCircle 
+                ? Bodies.circle(x, -50, size/2, { restitution: 0.7, friction: 0.05, render: { fillStyle: '#0f0' }})
+                : Bodies.rectangle(x, -50, size, size, { restitution: 0.5, render: { fillStyle: '#0a0' }});
+            
+            Composite.add(engine.world, obj);
+        }
+
+        // Kollisions-Event für Score
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                score += 10;
+                scoreEl.textContent = score;
+            });
+        });
+
+        // Antigravity Funktion
+        let normalGravity = true;
+        document.getElementById('reverse-btn').addEventListener('click', () => {
+            normalGravity = !normalGravity;
+            engine.gravity.y = normalGravity ? 1 : -1;
+            gravEl.textContent = normalGravity ? "NORMAL" : "INVERTED";
+            gravEl.style.color = normalGravity ? "#0f0" : "#f0f";
+        });
+
+        document.getElementById('spawn-btn').addEventListener('click', spawnObject);
+
+        // Initialer Spawn
+        for(let i=0; i<10; i++) setTimeout(spawnObject, i * 200);
+
+        Render.run(render);
+        Runner.run(Runner.create(), engine);
+
+        // Automatisches Aufräumen (Performance)
+        setInterval(() => {
+            const allBodies = Composite.allBodies(engine.world);
+            allBodies.forEach(body => {
+                if (!body.isStatic && (body.position.y > window.innerHeight + 200 || body.position.y < -200)) {
+                    Composite.remove(engine.world, body);
+                }
+            });
+        }, 5000);
+
+    </script>
+</body>
+</html>
